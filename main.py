@@ -7,8 +7,8 @@ import torch
 import gc
 from util import df, df2, calculate_accuracy
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
-from summarization import output_json
-from extraction import extracted_summaries
+from extraction import output_json
+from summary import extracted_summaries
 torch.random.manual_seed(0)
 
 tokenizer = AutoTokenizer.from_pretrained("/kaggle/input/phi-3/pytorch/phi-3.5-mini-instruct/2", trust_remote_code=True)

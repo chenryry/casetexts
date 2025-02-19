@@ -135,7 +135,7 @@ def extract_case_summary_batch(batch_texts, pipe, generation_args):
             {
                 "role": "user",
                 "content": (
-                    "Task: Summarize the following case text in 2-3 sentences while maintaining key legal information.\n"
+                    "Task: Summarize the following case text in 2-3 sentences while maintaining key legal information. Make sure to include the case name, city name, docket number, date, and plaintiff and defendant's information if possible in the summary.\n"
                     "Format: Return only the summary as a plain text string without additional explanations or formatting.\n\n"
                     f"Input_text:\n{text}"
                 )

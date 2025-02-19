@@ -1,4 +1,4 @@
-from util import batchify, extract_case_summary_batch
+from util import batchify, extract_case_details_batch
 import numpy as np
 import pandas as pd
 import re
@@ -11,6 +11,7 @@ torch.random.manual_seed(0)
 from main import model,tokenizer
 from util import df,df2,df3
 
+
 pipe = pipeline(
     "text-generation",
     model=model,
@@ -18,20 +19,26 @@ pipe = pipeline(
 )
 
 generation_args = {
-        "max_new_tokens": 100,  
-        "return_full_text": False,
-        "temperature": 0.3,  
-        "do_sample": True, 
-        "top_p": 0.9  
-    }
+    "max_new_tokens": 500,
+    "return_full_text": False,
+    "temperature": 0.0,
+    "do_sample": False,
+}
+
 batch_size = 1
-extracted_summaries = []
+extracted_data = []
 for batch in tqdm(batchify(df3["case_text"].tolist(), batch_size)):
-    batch_summaries = extract_case_summary_batch(batch, pipe, generation_args)
-    for summary in batch_summaries:
-        print(summary)
-        extracted_summaries.append(summary)
+    batch_responses = extract_case_details_batch(batch, pipe, generation_args)
+    for response in batch_responses:
+        try:
+            print(response)
+            extracted = json.loads(response)
+        except json.JSONDecodeError:
+            continue
+        extracted_data.append(extracted)
     torch.cuda.empty_cache()
     gc.collect()
 
-extracted_summaries
+
+output_json = json.dumps(extracted_data, indent=4)
+
