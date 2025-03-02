@@ -9,7 +9,7 @@ from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 torch.random.manual_seed(0)
 
 df = pd.read_csv("legal_text_classification.csv")
-df = df.sample(25, random_state = 21)
+df = df.sample(25, random_state = 24)
 df3 = df[['case_text']]
 df2 = df[['case_title']]
 
@@ -56,7 +56,11 @@ def extract_case_details(case_title):
         "docket_number": int(docket_number) if docket_number else None,
         "year": int(case_year)
     }
+# Apply the extraction to the dataset
+case_details = df2['case_title'].apply(extract_case_details)
 
+# Convert the results to a JSON format and store in a variable
+cases_json = json.dumps(case_details.to_list(), indent=4)
 def batchify(data, batch_size):
     """Split data into smaller batches."""
     for i in range(0, len(data), batch_size):
@@ -212,3 +216,61 @@ def calculate_accuracy(returned_json, case_texts_df, text_column="case_title"):
 
     accuracy = (correct_count / total_cases) * 100 if total_cases > 0 else 0
     return round(accuracy, 2)
+
+def compute_summary_accuracy(cases_json_str, extracted_summaries):
+    """
+    Checks if the plaintiff, defendant, docket number, and year from the correct JSON 
+    (given as a string) are present in the generated summary. Returns an average accuracy score (0 to 1).
+    """
+    # Try to parse the correct_json string into a list of dictionaries (cases)
+    try:
+        correct_json = json.loads(cases_json_str)
+    except json.JSONDecodeError as e:
+        print(f"JSON Decode Error: {e}")
+        raise ValueError(f"Error: The string could not be parsed as JSON. Raw string check: {cases_json_str[:100]}")
+
+    # Ensure correct_json is a list (since we are dealing with multiple cases)
+    if not isinstance(correct_json, list):
+        raise ValueError(f"Expected a list but got: {type(correct_json)}")
+
+    # Initialize a list to store accuracy scores for each case-summary pair
+    accuracy_scores = []
+
+    # Loop through all cases and corresponding summaries
+    for case, summary in zip(correct_json, extracted_summaries):
+        # Extract correct values from the case
+        plaintiffs = case.get("plaintiff", [])
+        defendants = case.get("defendant", [])
+        docket_number = str(case.get("docket_number", ""))
+        year = str(case.get("year", ""))
+
+        # Clean and prepare the summary
+        cleaned_summary = re.sub(r'&amp;', '&', summary)  # Convert HTML entities
+        cleaned_summary = re.sub(r'\s+', ' ', cleaned_summary)  # Remove extra spaces
+
+        found_count = 0
+        total_fields = 4  # Plaintiff, Defendant, Docket Number, Year
+
+        # Check for plaintiff names in the summary
+        if any(p in cleaned_summary for p in plaintiffs):
+            found_count += 1
+        
+        # Check for defendant names in the summary
+        if any(d in cleaned_summary for d in defendants):
+            found_count += 1
+        
+        # Check for docket number in the summary (ensure it's present as string)
+        if docket_number in cleaned_summary:
+            found_count += 1
+        
+        # Check for year in the summary
+        if year in cleaned_summary:
+            found_count += 1
+
+        # Compute accuracy for this case-summary pair
+        accuracy = found_count / total_fields
+        accuracy_scores.append(accuracy)
+
+    # Return the average accuracy across all cases and summaries
+    average_accuracy = sum(accuracy_scores) / len(accuracy_scores) if accuracy_scores else 0
+    return average_accuracy
