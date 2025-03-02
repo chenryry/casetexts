@@ -9,10 +9,19 @@ import gc
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.vectorstores import FAISS
-from summary import extracted_summaries
+from langchain.chains import RetrievalQA
+from langchain.llms import HuggingFacePipeline
+from extraction import extracted_summaries
 embedding_model = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
 
 vector_db = FAISS.from_texts(extracted_summaries, embedding_model)
+tokenizer = AutoTokenizer.from_pretrained("/kaggle/input/phi-3/pytorch/phi-3.5-mini-instruct/2", trust_remote_code=True)
+model = AutoModelForCausalLM.from_pretrained(
+"/kaggle/input/phi-3/pytorch/phi-3.5-mini-instruct/2",
+device_map="cuda",
+torch_dtype="auto",
+trust_remote_code=True,
+)
 
 llm_pipeline = pipeline(
     "text-generation",

@@ -5,7 +5,7 @@ import json
 from tqdm import tqdm
 import torch
 import gc
-from util import df, df2, calculate_accuracy
+from util import df, df2, calculate_accuracy, compute_summary_accuracy, cases_json
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 from summarization import output_json
 from extraction import extracted_summaries
@@ -24,5 +24,6 @@ trust_remote_code=True,
 accuracy = calculate_accuracy(output_json, df2)
 print(f"Accuracy: {accuracy:.2f}%")
 
-print(extracted_summaries)
+accuracy_score = compute_summary_accuracy(cases_json, extracted_summaries)
+print("Accuracy Score:", accuracy_score)
 
